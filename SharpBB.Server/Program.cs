@@ -17,8 +17,10 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 INTERN_CONF_SINGLETONS.BaseDir = app.Configuration["ConfigurationDirectory"];
-
-Initialize();
+if (!Directory.Exists(INTERN_CONF_SINGLETONS.BaseDir))
+{
+    Initialize();
+}
 
 
 // Configure the HTTP request pipeline.
@@ -31,6 +33,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+
+
 app.Run();
 
 void Initialize()
@@ -42,9 +46,9 @@ void Initialize()
         var s = Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("SharpBB.Server.Assets.anonymous.webp")!;
         s.CopyTo(arr);
-        
+
         pre.Settings.DefaultAvatar = arr.ToArray();
-        pre.SaveChanges(); 
+        pre.SaveChanges();
         pre.Dispose();
         arr.Dispose();
         s.Dispose();

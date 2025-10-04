@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using System.Security.Cryptography.Xml;
 using Microsoft.EntityFrameworkCore;
 
 namespace SharpBB.Server.DbContexts;
@@ -24,6 +26,26 @@ public enum DbType
 {
     MySql,
     Sqlite
+}
+
+public static class DbQueryExtensions
+{
+    extension(DbSet<Setting> set)
+    {
+        public void AddIfNotExists(string key, string value)
+        {
+            if (set.Any(i => i.Key == key))
+            {
+                set.First(i => i.Key == key).Value = value;
+                return;
+            }
+
+            set.Add(new()
+            {
+                Key = key, Value = value
+            });
+        }
+    }
 }
 
 public class SettingsDbSet(DbSet<Setting> settings)
@@ -117,17 +139,30 @@ public class SettingsDbSet(DbSet<Setting> settings)
             {
                 throw new ArgumentNullException(nameof(value));
             }
+
             if (SettingsInternal.Any(i => i.Key == "DefaultAvatar"))
             {
                 SettingsInternal.First(i => i.Key == "DefaultAvatar").Value = Convert.ToBase64String(value);
-                return; 
+                return;
             }
 
             SettingsInternal.Add(new()
             {
                 Key = "DefaultAvatar", Value = Convert.ToBase64String(value)
-            }); 
+            });
+        }
+    }
 
+    public string? AdminContact
+    {
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "AdminContact")?.Value;
+        set
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+            SettingsInternal.AddIfNotExists("AdminContact", value);
         }
     }
 }
