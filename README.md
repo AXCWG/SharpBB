@@ -3,6 +3,6 @@
 Forum software on top of C# and TS. 
 
 ### Current Plan
-- [ ] Default Profile pic
+- [x] Default Profile pic
 - [ ] Logic
 - [ ] UI
