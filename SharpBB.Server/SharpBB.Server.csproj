@@ -13,5 +13,8 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.9" />
         <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
     </ItemGroup>
-
+    <ItemGroup>
+        <None Include="Assets/**/*"/>
+        <EmbeddedResource Include="Assets/**/*"/>
+    </ItemGroup>
 </Project>

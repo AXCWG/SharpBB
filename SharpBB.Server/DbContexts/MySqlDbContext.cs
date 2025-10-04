@@ -17,7 +17,7 @@ public class MySqlDbContext : ForumDbContext
         using var conf = new ConfigurationSqliteDbContext();
         
         optionsBuilder.UseMySql(
-           conf.Settings.GetMySqlConnectionSetting() ?? throw new InvalidOperationException("No connection string specified"),
-            ServerVersion.AutoDetect(conf.Settings.GetMySqlConnectionSetting() ??  throw new InvalidOperationException("No connection string specified")));
+           conf.Settings.MySqlConnectionString ?? throw new InvalidOperationException("No connection string specified"),
+            ServerVersion.AutoDetect(conf.Settings.MySqlConnectionString ??  throw new InvalidOperationException("No connection string specified")));
     }
 }

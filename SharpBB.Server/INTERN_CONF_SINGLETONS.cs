@@ -68,11 +68,11 @@ public static class INTERN_CONF_SINGLETONS
         get
         {
             using var conf = new ConfigurationSqliteDbContext(); 
-            switch (conf.Settings.GetDbTypeSettings())
+            switch (conf.Settings.DbType)
             {
-                case DbTypeSettings.DbType.Sqlite:
+                case DbType.Sqlite:
                     return new SqliteDbContext();
-                case DbTypeSettings.DbType.MySql:
+                case DbType.MySql:
                     return new MySqlDbContext();
                 default:
                     throw new NotImplementedException(); 
