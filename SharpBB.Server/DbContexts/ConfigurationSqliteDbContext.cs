@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Security.Cryptography.Xml;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace SharpBB.Server.DbContexts;
@@ -18,8 +19,8 @@ public class ConfigurationSqliteDbContext : DbContext
 [PrimaryKey(nameof(Key))]
 public class Setting
 {
-    public required string Key { get; set; }
-    public required string Value { get; set; }
+    public string? Key { get; set; }
+    public string? Value { get; set; }
 }
 
 public enum DbType
@@ -32,7 +33,7 @@ public static class DbQueryExtensions
 {
     extension(DbSet<Setting> set)
     {
-        public void AddIfNotExists(string key, string value)
+        public void AddIfNotExists(string key, string? value)
         {
             if (set.Any(i => i.Key == key))
             {
@@ -54,115 +55,79 @@ public class SettingsDbSet(DbSet<Setting> settings)
 
     public string? MySqlConnectionString
     {
-        get
-        {
-            if (SettingsInternal.Any(i => i.Key == "MySqlConnectionString"))
-            {
-                return SettingsInternal.First(i => i.Key == "MySqlConnectionString").Value;
-            }
-
-            return null;
-        }
-        set
-        {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-
-            if (SettingsInternal.Any(i => i.Key == "MySqlConnectionString"))
-            {
-                SettingsInternal.First(i => i.Key == "MySqlConnectionString").Value = value;
-                return;
-            }
-
-            SettingsInternal.Add(new()
-            {
-                Key = "MySqlConnectionString", Value = value
-            });
-        }
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "MySqlConnectionString")?.Value;
+        set => SettingsInternal.AddIfNotExists("MySqlConnectionString", value);
     }
 
     public DbType? DbType
     {
-        get
-        {
-            if (SettingsInternal.Any(i => i.Key == "DbType"))
+        get =>
+            SettingsInternal.FirstOrDefault(i => i.Key == "DbType")?.Value switch
             {
-                return SettingsInternal.First(i => i.Key == "DbType").Value switch
-                {
-                    "sqlite" => DbContexts.DbType.Sqlite, "mysql" => DbContexts.DbType.MySql,
-                    _ => throw new InvalidOperationException()
-                };
-            }
-
-            return null;
-        }
-        set
-        {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-
-            if (SettingsInternal.Any(i => i.Key == "DbType"))
-            {
-                SettingsInternal.First(i => i.Key == "DbType").Value = value switch
-                {
-                    DbContexts.DbType.Sqlite => "sqlite", DbContexts.DbType.MySql => "mysql",
-                    _ => throw new InvalidOperationException()
-                };
-                return;
-            }
-
-            SettingsInternal.Add(new()
-            {
-                Key = "DbType", Value = value.ToString()!.ToLower()
-            });
-        }
+                "sqlite" => DbContexts.DbType.Sqlite, "mysql" => DbContexts.DbType.MySql, null => null,
+                _ => throw new InvalidOperationException()
+            };
+        set => SettingsInternal.AddIfNotExists("DbType", value.ToString()!.ToLower());
     }
 
     public byte[]? DefaultAvatar
     {
         get
         {
-            if (SettingsInternal.Any(i => i.Key == "DefaultAvatar"))
-            {
-                return Convert.FromBase64String(SettingsInternal.First(i => i.Key == "DefaultAvatar").Value);
-            }
-
-            return null;
+            var avatar = SettingsInternal.FirstOrDefault(i => i.Key == "DefaultAvatar")?.Value;
+            return avatar != null ? Convert.FromBase64String(avatar) : null;
         }
         set
         {
             if (value == null)
             {
-                throw new ArgumentNullException(nameof(value));
-            }
-
-            if (SettingsInternal.Any(i => i.Key == "DefaultAvatar"))
-            {
-                SettingsInternal.First(i => i.Key == "DefaultAvatar").Value = Convert.ToBase64String(value);
+                SettingsInternal.AddIfNotExists("DefaultAvatar", null);
                 return;
             }
 
-            SettingsInternal.Add(new()
-            {
-                Key = "DefaultAvatar", Value = Convert.ToBase64String(value)
-            });
+            SettingsInternal.AddIfNotExists("DefaultAvatar", Convert.ToBase64String(value));
         }
     }
 
     public string? AdminContact
     {
         get => SettingsInternal.FirstOrDefault(i => i.Key == "AdminContact")?.Value;
-        set
-        {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-            SettingsInternal.AddIfNotExists("AdminContact", value);
-        }
+        set => SettingsInternal.AddIfNotExists("AdminContact", value);
     }
+
+    public bool AllowAnonymousUser
+    {
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "AllowAnonymousUser")?.Value?.ToBoolean() ?? false;
+        set => SettingsInternal.AddIfNotExists("AllowAnonymousUser", value.ToStringStandard());
+    }
+    public bool AllowAnonymousRead
+    {
+        get => (SettingsInternal.FirstOrDefault(i => i.Key == "AllowAnonymousRead")?.Value?.ToBoolean() ?? false) && AllowAnonymousUser;
+        set => SettingsInternal.AddIfNotExists("AllowAnonymousRead", value.ToStringStandard());
+    }
+
+    public bool AllowAnonymousPost
+    {
+        get => (SettingsInternal.FirstOrDefault(i => i.Key == "AllowAnonymousPost")?.Value?.ToBoolean() ?? false) && AllowAnonymousUser;
+        set => SettingsInternal.AddIfNotExists("AllowAnonymousPost", value.ToStringStandard());
+    }
+
+    public bool AllowAnonymousReply
+    {
+        get => (SettingsInternal.FirstOrDefault(i => i.Key == "AllowAnonymousReply")?.Value?.ToBoolean() ?? false) && AllowAnonymousUser;
+        set => SettingsInternal.AddIfNotExists("AllowAnonymousReply", value.ToStringStandard());
+    }
+
+    public bool AllowAnonymousMessaging
+    {
+        get => (SettingsInternal.FirstOrDefault(i => i.Key == "AllowAnonymousMessages")?.Value?.ToBoolean() ?? false) && AllowAnonymousUser;
+        set => SettingsInternal.AddIfNotExists("AllowAnonymousMessages", value.ToStringStandard());
+    }
+
+    public bool AllowAnonymousImages
+    {
+        get => (SettingsInternal.FirstOrDefault(i => i.Key == "AllowAnonymousImages")?.Value?.ToBoolean() ?? false) && AllowAnonymousUser;
+        set => SettingsInternal.AddIfNotExists("AllowAnonymousImages", value.ToStringStandard());
+    }
+    
 }

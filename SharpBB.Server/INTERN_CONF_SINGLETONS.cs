@@ -6,43 +6,18 @@ using SharpBB.Server.DbContexts.Base;
 using SQLitePCL;
 
 namespace SharpBB.Server;
-
-
-
-
-
 // ReSharper disable once InconsistentNaming
 
 public static class INTERN_CONF_SINGLETONS
 {
 
 
-    public static bool Initialized { get; set; } 
+    public static bool Initialized => Directory.Exists(BaseDir);
+
     public static string? BaseDir
     {
-        get
-        {
-            if (!Directory.Exists(field))
-            {
-                throw new DirectoryNotFoundException(field);
-            }
-
-            return field; 
-        }
-        set
-        {
-            if (value == null)
-            {
-                return; 
-            }
-            if (!Directory.Exists(value))
-            {
-                Initialized = false;
-                Directory.CreateDirectory(value);
-            }
-
-            field = value; 
-        }
+        get;
+        set; 
     }
 
     public static string SqliteDir
@@ -59,7 +34,7 @@ public static class INTERN_CONF_SINGLETONS
             {
                 Directory.CreateDirectory(dir);
             }
-            return Path.Join(dir, "bbs_data.db");
+            return Path.Join(dir, "sharpbb_data.db");
         }
     }
 

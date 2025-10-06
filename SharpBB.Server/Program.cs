@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using SharpBB.Server;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
@@ -6,6 +8,47 @@ using SharpBB.Server.DbContexts.Base;
 // TODO Default Profile picture. 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(o =>
+{
+    o.AddPolicy("All", p =>
+    {
+        p.WithOrigins("http://localhost:5173", "https://andyxie.cn:4000", "http://localhost:3000",
+                "https://andyxie.cn:4001", "http://localhost:3001")
+            .WithHeaders("Content-Type").AllowCredentials();
+    });
+});
+
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddRateLimiter(_ =>
+{
+    _.AddPolicy<string>("UploadRateLimiting", context =>
+    {
+        var ip = context.Request.Host.Host;
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new()
+        {
+            PermitLimit = 6, AutoReplenishment = true, Window = TimeSpan.FromMinutes(10)
+        });
+    });
+    _.OnRejected = (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        return ValueTask.CompletedTask;
+    };
+});
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(o =>
+{
+    o.IdleTimeout = TimeSpan.FromDays(7);
+    o.Cookie.HttpOnly = true;
+    o.Cookie.IsEssential = true;
+    o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
+builder.Services.Configure<KestrelServerOptions>(o => o.Limits.MaxRequestBodySize = 1_000_000_000);
+
 
 // Add services to the container.
 builder.Services.AddAuthorization();
@@ -15,9 +58,11 @@ builder.Services.AddOpenApi();
 
 
 var app = builder.Build();
+app.UseRateLimiter();
+
 
 INTERN_CONF_SINGLETONS.BaseDir = app.Configuration["ConfigurationDirectory"];
-if (!Directory.Exists(INTERN_CONF_SINGLETONS.BaseDir))
+if (!INTERN_CONF_SINGLETONS.Initialized)
 {
     Initialize();
 }
@@ -27,18 +72,28 @@ if (!Directory.Exists(INTERN_CONF_SINGLETONS.BaseDir))
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
+app.UseCors("All");
 app.UseAuthorization();
+app.UseSession();
 
-
+app.MapBbsEndpoints();
 
 app.Run();
 
 void Initialize()
 {
+    if (INTERN_CONF_SINGLETONS.BaseDir is not null)
+        Directory.CreateDirectory(INTERN_CONF_SINGLETONS.BaseDir);
+    else
+        throw new InvalidOperationException();
     {
         var pre = new ConfigurationSqliteDbContext();
         pre.Database.EnsureCreated();
@@ -123,7 +178,7 @@ void Initialize()
         var username = Console.ReadLine()?.Trim();
         Console.Write("Password: ");
         var password = Console.ReadLine()?.Trim();
-        var connectionString = $"Server={server}; User={username}; Password={password};Database=SharpBB";
+        var connectionString = $"Server={server}; User={username}; Password={password};Database=SharpBB_Data";
         var conf = new ConfigurationSqliteDbContext();
         conf.Settings.DbType = DbType.MySql;
         conf.Settings.MySqlConnectionString = connectionString;

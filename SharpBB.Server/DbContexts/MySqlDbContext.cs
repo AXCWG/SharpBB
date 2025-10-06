@@ -11,6 +11,7 @@ public class MySqlDbContext : ForumDbContext
     public override DbSet<Announce> Announces { get; set; }
     public override DbSet<Message> Messages { get; set; }
     public override DbSet<Image> Images { get; set; }
+    public override DbSet<Point> Points { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
