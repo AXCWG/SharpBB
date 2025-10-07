@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using SharpBB.Server;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
+using SharpBB.Server.DbContexts.Base.Models;
 
 // TODO Default Profile picture. 
 
@@ -153,7 +154,7 @@ void Initialize()
     dbContext.Database.EnsureCreated();
     dbContext.Users.Add(new User
     {
-        Uuid = Guid.NewGuid().ToString(), Joined = DateTime.Now, Username = "Admin", Role = UserRole.Admin,
+        Uuid = Guid.NewGuid().ToString(), Joined = DateTime.Now, Username = "Admin", Role = User.UserRole.Admin,
         Password = adminPassword.Sha256HexHashString()
     });
     dbContext.SaveChanges();
@@ -185,16 +186,23 @@ void Initialize()
         conf.SaveChanges();
         conf.Dispose();
         var mysql = new MySqlDbContext();
-        if (mysql.Database.CanConnect())
+        try
         {
+
+            mysql.Database.EnsureCreated();
             Console.WriteLine("Database connection establishable.");
-            mysql.Dispose();
         }
-        else
+        catch (Exception e)
         {
             Console.WriteLine("Database connection not establishable. Please try again. ");
-            mysql.Dispose();
             goto START_MYSQL_INIT;
         }
+        finally
+        {
+            mysql.Dispose();
+        }
+        
+        
+        
     }
 }

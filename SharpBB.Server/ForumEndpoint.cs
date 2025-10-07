@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
+using SharpBB.Server.DbContexts.Base.Models;
 
 namespace SharpBB.Server;
 
@@ -50,7 +51,7 @@ public static class ForumEndpoint
                     {
                         Username = body.Username,
                         Password = body.Password.Sha256HexHashString(), Uuid = uuid,
-                        Role = UserRole.People, Email = body.Email, Joined = DateTime.Now
+                        Role = User.UserRole.People, Email = body.Email, Joined = DateTime.Now
                     });
                     db.SaveChanges();
                     context.Session.SetString(nameof(uuid), uuid);
