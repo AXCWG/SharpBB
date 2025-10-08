@@ -38,6 +38,20 @@ public static class INTERN_CONF_SINGLETONS
         }
     }
 
+    public static string ImageSqliteDir
+    {
+        get
+        {
+            if(BaseDir == null)
+                throw new NullReferenceException("Please specify valid base directory before accessing any members inside INTERN_CONF. "); 
+            var dir = Path.Join(BaseDir, "data");
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            return Path.Join(dir, "sharpbb_images.db"); 
+        }
+    }
     public static ForumDbContext MainContext
     {
         get

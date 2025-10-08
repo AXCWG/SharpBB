@@ -11,7 +11,6 @@ public class MySqlDbContext : ForumDbContext
     public override DbSet<User> Users { get; set; }
     public override DbSet<Announce> Announces { get; set; }
     public override DbSet<Message> Messages { get; set; }
-    public override DbSet<Image> Images { get; set; }
     public override DbSet<UserPoint> UserPoints { get; set; }
     public override DbSet<UserBlock> UserBlocks { get; set; }
     public override DbSet<PostUserPostAllowed> PostUserPostAllowed { get; set; }

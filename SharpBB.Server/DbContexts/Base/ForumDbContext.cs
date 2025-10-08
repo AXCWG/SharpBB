@@ -10,7 +10,6 @@ public abstract class ForumDbContext : DbContext
     public abstract DbSet<User> Users { get; set; }
     public abstract DbSet<Announce> Announces { get; set; }
     public abstract DbSet<Message> Messages { get; set; }
-    public abstract DbSet<Image> Images { get; set;  }
     public abstract DbSet<UserPoint> UserPoints { get; set; }
     public abstract DbSet<UserBlock> UserBlocks { get; set; }
     public abstract DbSet<PostUserPostAllowed>  PostUserPostAllowed { get; set; }

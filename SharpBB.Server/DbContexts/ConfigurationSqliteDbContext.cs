@@ -129,5 +129,33 @@ public class SettingsDbSet(DbSet<Setting> settings)
         get => (SettingsInternal.FirstOrDefault(i => i.Key == "AllowAnonymousImages")?.Value?.ToBoolean() ?? false) && AllowAnonymousUser;
         set => SettingsInternal.AddIfNotExists("AllowAnonymousImages", value.ToStringStandard());
     }
-    
+
+    public bool AllowUserCreatingBoards
+    {
+        get => SettingsInternal.FirstOrDefault(i=>i.Key == "AllowUserCreatingBoards")?.Value?.ToBoolean() ?? false;
+        set => SettingsInternal.AddIfNotExists("AllowUserCreatingBoards", value.ToStringStandard());
+    }
+
+    public bool AllowPromoteSubAdmins
+    {
+        get => (SettingsInternal).FirstOrDefault(i=>i.Key == "AllowPromoteSubAdmins")?.Value?.ToBoolean() ?? false;
+        set => SettingsInternal.AddIfNotExists("AllowPromoteSubAdmins", value.ToStringStandard());
+    }
+
+    public bool AllowEmptyPassword
+    {
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "AllowEmptyPassword")?.Value?.ToBoolean() ?? false;
+        set => SettingsInternal.AddIfNotExists("AllowEmptyPassword", value.ToStringStandard());
+    }
+    public bool EnableRegistration
+    {
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "EnableRegistration")?.Value?.ToBoolean() ?? false;
+        set => SettingsInternal.AddIfNotExists("EnableRegistration", value.ToStringStandard());
+    }
+
+    public bool EnforceEmail
+    {
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "EnforceEmail")?.Value?.ToBoolean() ?? false;
+        set => SettingsInternal.AddIfNotExists("EnforceEmail", value.ToStringStandard());
+    }
 }

@@ -91,6 +91,9 @@ app.Run();
 
 void Initialize()
 {
+    var images = new ImagesDbContext();
+    images.Database.EnsureCreated(); 
+    images.Dispose();
     if (INTERN_CONF_SINGLETONS.BaseDir is not null)
         Directory.CreateDirectory(INTERN_CONF_SINGLETONS.BaseDir);
     else

@@ -28,9 +28,6 @@ public class Post
     [MaxLength(36)]
     public required string BoardUuid { get; set; }
     public required Board Board { get; set; }
-    /// <summary>
-    /// //TODO Anonymous posting option. 
-    /// </summary>
     [MaxLength(36)]
     public string? ByUuid { get; set; }
     public User? By { get; set; }

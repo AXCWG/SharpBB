@@ -7,10 +7,9 @@ namespace SharpBB.Server;
 
 public static class ForumEndpoint
 {
-    // TODO Check Username / Password constraints. 
     private class RegisterBody
     {
-        public string? Username { get; set; }
+        public required string Username { get; set; }
         public string? Password { get; set; }
         public string? Email { get; set; }
     }
@@ -23,26 +22,63 @@ public static class ForumEndpoint
     public static IResult GeneralHandler(Exception e)
     {
         using var conf = new ConfigurationSqliteDbContext();
-        var message = conf.Settings.AdminContact != null
-            ? $"An error occured while registering user: {e.Message}. Please contact the server admin through {conf.Settings.AdminContact}"
-            : $"An error occured while registering user: {e.Message}. Please contact the server admin.";
-        return Results.InternalServerError(message);
+        return Results.InternalServerError(new{e.Message, conf.Settings.AdminContact});
     }
     extension(WebApplication app)
     {
-        public void MapBbsEndpoints()
+        public WebApplication MapBbsEndpoints()
+        {
+            app.MapBbsUserEndpoints().MapBbsPostEndpoints().MapBbsStatusEndpoints();
+            return app; 
+        }
+
+        public WebApplication MapBbsUserEndpoints()
         {
             var userApi = app.MapGroup("/api/bbs/user");
 
 
             userApi.MapPost("register", ([FromBody] RegisterBody body, HttpContext context) =>
             {
-                // TODO Here. 
-                if (string.IsNullOrWhiteSpace(body.Username) || string.IsNullOrWhiteSpace(body.Password))
+                var configuration = new ConfigurationSqliteDbContext();
+                if (!configuration.Settings.EnableRegistration)
                 {
-                    return Results.BadRequest("Username or password is required");
+                    return Results.BadRequest(new
+                    {
+                        Type=0, MessageForReference="Registration is disabled by administrator. ",
+                    }); 
+                }
+                if (configuration.Settings.AllowEmptyPassword)
+                {
+                    if (string.IsNullOrWhiteSpace(body.Username))
+                    {
+                        return Results.BadRequest(new
+                        {
+                            Type=1, MessageForReference="Username is required.",
+                        });
+                    }
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(body.Username) || string.IsNullOrWhiteSpace(body.Password))
+                    {
+                        return Results.BadRequest(new
+                        {
+                            Type=2, MessageForReference="Username and password are required.",
+                        }); 
+                    }
                 }
 
+                if (configuration.Settings.EnforceEmail)
+                {
+                    if (string.IsNullOrWhiteSpace(body.Email))
+                    {
+                        return Results.BadRequest(new
+                        {
+                            Type = 3, MessageForReference = "Email is required.",
+                        });
+                    }
+                }
+                configuration.Dispose();
                 try
                 {
                     using var db = INTERN_CONF_SINGLETONS.MainContext;
@@ -50,7 +86,7 @@ public static class ForumEndpoint
                     db.Users.Add(new()
                     {
                         Username = body.Username,
-                        Password = body.Password.Sha256HexHashString(), Uuid = uuid,
+                        Password = body.Password?.Sha256HexHashString(), Uuid = uuid,
                         Role = User.UserRole.People, Email = body.Email, Joined = DateTime.Now
                     });
                     db.SaveChanges();
@@ -89,7 +125,51 @@ public static class ForumEndpoint
                 {
                     return GeneralHandler(e); 
                 }
+            });
+            return app; 
+        }
+
+        public WebApplication MapBbsPostEndpoints()
+        {
+            var postApi = app.MapGroup("/api/bbs/post");
+            return app; 
+        }
+
+        public WebApplication MapBbsStatusEndpoints()
+        {
+            app.MapGet("/api/bbs/conf", () =>
+            {
+                using var conf = new ConfigurationSqliteDbContext();
+                return Results.Ok(new
+                {
+                    conf.Settings.AdminContact,
+                    conf.Settings.AllowAnonymousUser,
+                    conf.Settings.AllowAnonymousRead,
+                    conf.Settings.AllowAnonymousPost,
+                    conf.Settings.AllowAnonymousReply, 
+                    conf.Settings.AllowAnonymousMessaging,
+                    conf.Settings.AllowAnonymousImages,
+                    conf.Settings.AllowUserCreatingBoards,
+                    conf.Settings.AllowPromoteSubAdmins, 
+                    conf.Settings.EnableRegistration,
+                    conf.Settings.AllowEmptyPassword,
+                    conf.Settings.EnforceEmail,
+                });
+            });
+            app.MapGet("/api/bbs/numerical", () =>
+            {
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                using var imagesDb = new ImagesDbContext(); 
+                return Results.Ok(new
+                {
+                    UserCount = db.Users.Count(),
+                    BoardCount = db.Boards.Count(),
+                    PostCount = db.Posts.Count(),
+                    MessageCount = db.Messages.Count(),
+                    ImageCount = imagesDb.Images.Count(),
+                });
             }); 
+            return app; 
         }
     }
 }
