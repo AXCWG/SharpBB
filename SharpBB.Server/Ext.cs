@@ -5,6 +5,7 @@ namespace SharpBB.Server;
 
 public static class Ext
 {
+
     extension(string input)
     {
         public string Sha256HexHashString()

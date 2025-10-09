@@ -38,7 +38,7 @@ public static class INTERN_CONF_SINGLETONS
         }
     }
 
-    public static string ImageSqliteDir
+    public static string BinarySqliteDir
     {
         get
         {
@@ -49,7 +49,7 @@ public static class INTERN_CONF_SINGLETONS
             {
                 Directory.CreateDirectory(dir);
             }
-            return Path.Join(dir, "sharpbb_images.db"); 
+            return Path.Join(dir, "sharpbb_binaries.db"); 
         }
     }
     public static ForumDbContext MainContext

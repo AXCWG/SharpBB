@@ -59,6 +59,12 @@ public class SettingsDbSet(DbSet<Setting> settings)
         set => SettingsInternal.AddIfNotExists("MySqlConnectionString", value);
     }
 
+    public string? PathToBinaryDb
+    {
+        get => SettingsInternal.FirstOrDefault(i=>i.Key == "PathToBinaryDb")?.Value;
+        set => SettingsInternal.AddIfNotExists("PathToBinaryDb", value);
+    }
+
     public DbType? DbType
     {
         get =>

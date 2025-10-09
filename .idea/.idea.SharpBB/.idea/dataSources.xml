@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
     <data-source source="LOCAL" name="bbs_data" uuid="a7e70eb5-e7a6-485a-b47d-6756878d9c5c">
-      <driver-ref>sqlite.xerial</driver-ref>
+      <driver-ref>8511551f-0bf8-4059-a1fb-0b1570ddeff4</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/SharpBB.Server/conf/data/bbs_data.db</jdbc-url>

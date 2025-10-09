@@ -7,12 +7,15 @@ using SharpBB.Server;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
 using SharpBB.Server.DbContexts.Base.Models;
+using WebPWrapper;
 
 // TODO Default Profile picture. 
 
+
+    
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles); 
+//builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles); 
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("All", p =>
@@ -94,7 +97,7 @@ app.Run();
 
 void Initialize()
 {
-    var images = new ImagesDbContext();
+    var images = new BinariesDbContext();
     images.Database.EnsureCreated(); 
     images.Dispose();
     if (INTERN_CONF_SINGLETONS.BaseDir is not null)
@@ -200,7 +203,7 @@ void Initialize()
         }
         catch (Exception e)
         {
-            Console.WriteLine("Database connection not establishable. Please try again. ");
+            Console.WriteLine($"Database connection not establishable. Please try again. {e}");
             goto START_MYSQL_INIT;
         }
         finally

@@ -1,30 +1,32 @@
+using ByteSizeLib;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
 using SharpBB.Server.DbContexts.Base.Models;
 using SharpBB.Server.DbContexts.Base.Models.DTOs;
+using System;
+using System.Net.Mime;
+using WebPWrapper.Encoder;
 
 namespace SharpBB.Server;
 
 public static class ForumEndpoint
 {
-    private class RegisterBody
+    public class RegisterBody
     {
         public required string Username { get; set; }
         public string? Password { get; set; }
         public string? Email { get; set; }
     }
-    private class LoginBody
+    public class LoginBody
     {
         public string? Username{ get; set;  }
         public string? Password { get; set;  }
     }
 
-    private class AvatarBody
-    {
-        public required IFormFile Avatar { get; set; }
-    }
+
     private enum UserApiRequestType
     {
         Username=0, 
@@ -49,6 +51,8 @@ public static class ForumEndpoint
         public string? Parent { get; set;  }
     }
 
+
+
     public static IResult GeneralHandler(Exception e)
     {
         using var conf = new ConfigurationSqliteDbContext();
@@ -58,7 +62,7 @@ public static class ForumEndpoint
     {
         public WebApplication MapBbsEndpoints()
         {
-            app.MapBbsUserEndpoints().MapBbsPostEndpoints().MapBbsStatusEndpoints();
+            app.MapBbsUserEndpoints().MapBbsPostEndpoints().MapBbsStatusEndpoints().MapBbsImageEndpoints();
             return app; 
         }
 
@@ -190,27 +194,40 @@ public static class ForumEndpoint
                 return Results.BadRequest(); 
             });
 
-            userApi.MapPost("changeAvatar", (HttpContext context, [FromForm] AvatarBody body) =>
+            userApi.MapPost("changeAvatar", (HttpContext context, [FromForm] IFormFile image) =>
             {
                 var sessionUuid = context.Session.GetString("uuid"); 
                 using var db = INTERN_CONF_SINGLETONS.MainContext;
-                using var mStream = new MemoryStream();
-                body.Avatar.CopyTo(mStream);
                 if (!db.Users.Any(i => i.Uuid == sessionUuid))
                 {
-                    return  Results.NotFound();
+                    return Results.NotFound();
                 }
-
+                if (!image.ContentType.StartsWith("image/"))
+                {
+                    return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+                }
+                using var mStream = new MemoryStream();
+                image.CopyTo(mStream);
+                
                 try
                 {
-                    db.Users.FirstOrDefault(i => i.Uuid == sessionUuid)?.Profile = mStream.ToArray();
+                    var cwebp = new WebPEncoderBuilder();
+                    var encoder = cwebp
+                        .Resize(500, 0)
+                        .CompressionConfig(x => x.Lossy(y => y.Size((int)(15 * ByteSize.BytesInKiloByte))))
+                        .Build();
+                    using var outputStream = new MemoryStream();
+                    mStream.Position = 0;
+                    encoder.Encode(mStream, outputStream);
+                    db.Users.FirstOrDefault(i => i.Uuid == sessionUuid)?.Profile = outputStream.ToArray();
                     db.SaveChanges(); 
-                    return Results.Ok(); 
+                    return Results.Ok();
                 }
                 catch (Exception e)
                 {
                     return GeneralHandler(e);
                 }
+                
             }).DisableAntiforgery(); 
             return app; 
         }
@@ -282,6 +299,67 @@ public static class ForumEndpoint
             return app; 
         }
 
+        public WebApplication MapBbsImageEndpoints()
+        {
+            var imageApis = app.MapGroup("api/bbs/binary");
+            imageApis.MapPost("post", ([FromForm]IFormFile binaryFile) =>
+            {
+                var uuid = Guid.NewGuid().ToString();
+                using var mStream = new MemoryStream();
+                binaryFile.CopyTo(mStream);
+                switch (binaryFile.ContentType)
+                {
+                    case var ct when ct.StartsWith("image/"):
+                        try
+                        {
+                            var cwebp = new WebPEncoderBuilder();
+                            var encoder = cwebp
+                                .CompressionConfig(x => x.Lossy(y => y.Size((int)(400 * ByteSize.BytesInKiloByte))))
+                                .Build();
+                            using var outputStream = new MemoryStream();
+                            mStream.Position = 0;
+                            encoder.Encode(mStream, outputStream);
+                            using var binariesDbContext = new BinariesDbContext();
+                            binariesDbContext.Binaries.Add(new()
+                            {
+                                Uuid = uuid, Content = outputStream.ToArray(), MimeType = "image/webp", FileName = binaryFile.FileName.Split(".")[0]+".webp"
+                            });
+                            binariesDbContext.SaveChanges();
+                            return Results.Ok(uuid); 
+                        }
+                        catch (Exception e)
+                        {
+                            return GeneralHandler(e);
+                        }
+
+                }
+                try
+                {
+                    using var binariesDbContext = new BinariesDbContext();
+                    binariesDbContext.Binaries.Add(new()
+                    {
+                        Uuid = uuid, Content = mStream.ToArray(), MimeType = binaryFile.ContentType, FileName = binaryFile.FileName
+                    });
+                    binariesDbContext.SaveChanges();
+                }
+                catch (Exception e)
+                {
+                    return GeneralHandler(e); 
+                }
+                return Results.Ok(uuid);
+            }).DisableAntiforgery().WithFormOptions(multipartBodyLengthLimit:10*ByteSize.BytesInMegaByte);
+            imageApis.MapGet("get/{uuid}", (string uuid) =>
+            {
+                using var db = new BinariesDbContext();
+                var res = db.Binaries.FirstOrDefault(i => i.Uuid == uuid); 
+                if(res is null)
+                {
+                    return Results.NotFound(); 
+                }
+                return Results.File(res.Content, contentType: res.MimeType, fileDownloadName: res.FileName); 
+            }); 
+            return app; 
+        }
         public WebApplication MapBbsStatusEndpoints()
         {
             app.MapGet("/api/bbs/conf", () =>
@@ -306,14 +384,14 @@ public static class ForumEndpoint
             app.MapGet("/api/bbs/numerical", () =>
             {
                 using var db = INTERN_CONF_SINGLETONS.MainContext;
-                using var imagesDb = new ImagesDbContext(); 
+                using var imagesDb = new BinariesDbContext(); 
                 return Results.Ok(new
                 {
                     UserCount = db.Users.Count(),
                     BoardCount = db.Boards.Count(),
                     PostCount = db.Posts.Count(),
                     MessageCount = db.Messages.Count(),
-                    ImageCount = imagesDb.Images.Count(),
+                    ImageCount = imagesDb.Binaries.Count(),
                 });
             }); 
             return app; 
