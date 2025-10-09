@@ -9,10 +9,19 @@ using SharpBB.Server.DbContexts.Base;
 using SharpBB.Server.DbContexts.Base.Models;
 using WebPWrapper;
 
-// TODO Default Profile picture. 
 
-
-    
+// TODO Programmatic procedural actions, something like:
+/**
+ * {
+ *      action: enum Action => {
+ *          Add, 
+ *          Move, 
+ *          Remove
+ *      }
+ *      ..Something else related to actiond. 
+ * }
+ * 
+ * **/
 var builder = WebApplication.CreateBuilder(args);
 
 //builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles); 
