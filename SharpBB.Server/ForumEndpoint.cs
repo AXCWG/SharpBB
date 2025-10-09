@@ -37,6 +37,11 @@ public static class ForumEndpoint
         UserRole=5, 
         Posts=6
     }
+    private enum MetadataRequestType
+    {
+        Name, 
+        Description
+    }
 
     private enum GetPostOrderType
     {
@@ -298,7 +303,10 @@ public static class ForumEndpoint
             }); 
             return app; 
         }
-
+        public WebApplication BbsBoardEndpoints()
+        {
+            return app; 
+        }
         public WebApplication MapBbsImageEndpoints()
         {
             var imageApis = app.MapGroup("api/bbs/binary");
@@ -393,6 +401,19 @@ public static class ForumEndpoint
                     MessageCount = db.Messages.Count(),
                     ImageCount = imagesDb.Binaries.Count(),
                 });
+            });
+            app.MapGet("/api/bbs/metadata", (MetadataRequestType? type) =>
+            {
+                using var conf = new ConfigurationSqliteDbContext(); 
+                switch (type)
+                {
+                    case MetadataRequestType.Name:
+                        return Results.Ok(conf.Settings.ForumName);
+                    case MetadataRequestType.Description:
+                        return Results.Ok(conf.Settings.ForumDescription);
+                    default:
+                        return Results.BadRequest(); 
+                }
             }); 
             return app; 
         }

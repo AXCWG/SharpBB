@@ -167,6 +167,20 @@ void Initialize()
         Password = adminPassword.Sha256HexHashString()
     });
     dbContext.SaveChanges();
+    Console.WriteLine("""
+        What would you like your forum to be called? This can be later edited in config. Leave the input empty to use the default. 
+        """);
+    var forumName = Console.ReadLine();
+    Console.WriteLine("""
+        What would you like to be your forum's description? This can be later edited in the config. Leave the input empty to not use any descriptions. 
+        """);
+    var forumDesc = Console.ReadLine();
+    using (var conf = new ConfigurationSqliteDbContext())
+    {
+        conf.Settings.ForumName = forumName.IsNullOrWhiteSpace() ? "SharpBB" : forumName;
+        conf.Settings.ForumDescription = forumDesc.NullIfEmpty();
+        conf.SaveChanges(); 
+    }
 
     Console.WriteLine("Initialization finished. Please restart SharpBB Server.");
     Environment.Exit(0);
@@ -189,11 +203,13 @@ void Initialize()
         Console.Write("Password: ");
         var password = Console.ReadLine()?.Trim();
         var connectionString = $"Server={server}; User={username}; Password={password};Database=SharpBB_Data";
-        var conf = new ConfigurationSqliteDbContext();
-        conf.Settings.DbType = DbType.MySql;
-        conf.Settings.MySqlConnectionString = connectionString;
-        conf.SaveChanges();
-        conf.Dispose();
+        using (var conf = new ConfigurationSqliteDbContext())
+        {
+            conf.Settings.DbType = DbType.MySql;
+            conf.Settings.MySqlConnectionString = connectionString;
+            conf.SaveChanges();
+        }
+        
         var mysql = new MySqlDbContext();
         try
         {

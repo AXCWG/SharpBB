@@ -39,5 +39,6 @@ public static class Ext
         {
             return string.IsNullOrWhiteSpace(input); 
         }
+        public string? NullIfEmpty() => input.IsNullOrWhiteSpace() ? null : input;
     }
 }

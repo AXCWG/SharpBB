@@ -25,6 +25,7 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="webp\" />
+      <Folder Include=".github\" />
     </ItemGroup>
 	<Choose>
 		<When Condition="'$(RuntimeIdentifier)' == 'win-x64'">

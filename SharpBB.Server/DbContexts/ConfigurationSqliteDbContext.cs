@@ -164,4 +164,14 @@ public class SettingsDbSet(DbSet<Setting> settings)
         get => SettingsInternal.FirstOrDefault(i => i.Key == "EnforceEmail")?.Value?.ToBoolean() ?? false;
         set => SettingsInternal.AddIfNotExists("EnforceEmail", value.ToStringStandard());
     }
+    public string? ForumName
+    {
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "ForumName")?.Value; 
+        set => SettingsInternal.AddIfNotExists("ForumName", value);
+    }
+    public string? ForumDescription
+    {
+        get => SettingsInternal.FirstOrDefault(i => i.Key == "ForumDescription")?.Value;
+        set => SettingsInternal.AddIfNotExists("ForumDescription", value); 
+    }
 }
