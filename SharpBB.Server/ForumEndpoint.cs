@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
 using SharpBB.Server.DbContexts.Base.Models;
+using SharpBB.Server.DbContexts.Base.Models.DTOs;
 
 namespace SharpBB.Server;
 
@@ -19,10 +21,38 @@ public static class ForumEndpoint
         public string? Password { get; set;  }
     }
 
+    private class AvatarBody
+    {
+        public required IFormFile Avatar { get; set; }
+    }
+    private enum UserApiRequestType
+    {
+        Username=0, 
+        Email=1, 
+        Profile=2, 
+        Description=3, 
+        Joined=4, 
+        UserRole=5, 
+        Posts=6
+    }
+
+    private enum GetPostOrderType
+    {
+        DateTime, Alphabetical
+    }
+
+    private class PostPostBody
+    {
+        public required string Title { get; set;  }
+        public required string Content { get; set;  }
+        public required string BoardUuid { get; set; }
+        public string? Parent { get; set;  }
+    }
+
     public static IResult GeneralHandler(Exception e)
     {
         using var conf = new ConfigurationSqliteDbContext();
-        return Results.InternalServerError(new{e.Message, conf.Settings.AdminContact});
+        return Results.InternalServerError(new{Message=e.InnerException is null ? e.Message : e.InnerException.Message, conf.Settings.AdminContact});
     }
     extension(WebApplication app)
     {
@@ -32,6 +62,7 @@ public static class ForumEndpoint
             return app; 
         }
 
+        
         public WebApplication MapBbsUserEndpoints()
         {
             var userApi = app.MapGroup("/api/bbs/user");
@@ -87,7 +118,7 @@ public static class ForumEndpoint
                     {
                         Username = body.Username,
                         Password = body.Password?.Sha256HexHashString(), Uuid = uuid,
-                        Role = User.UserRole.People, Email = body.Email, Joined = DateTime.Now
+                        Role = User.UserRole.People, Email = body.Email, Joined = DateTime.UtcNow
                     });
                     db.SaveChanges();
                     context.Session.SetString(nameof(uuid), uuid);
@@ -98,8 +129,6 @@ public static class ForumEndpoint
                     return GeneralHandler(e); 
                 }
             });
-
-       
             userApi.MapPost("login", ([FromBody] LoginBody body, HttpContext context) =>
             {
                 // TODO Here. 
@@ -126,12 +155,130 @@ public static class ForumEndpoint
                     return GeneralHandler(e); 
                 }
             });
+
+            userApi.MapGet("userapi", (HttpContext context, [FromQuery] UserApiRequestType requestType, string? uuid) =>
+            {
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                if (!string.IsNullOrWhiteSpace(uuid))
+                {
+                    return Results.Ok(); 
+                }
+                var sessionUuid = context.Session.GetString("uuid");
+                if (!db.Users.Any(i => i.Uuid == sessionUuid))
+                {
+                    return Results.NotFound(); 
+                }
+                switch (requestType)
+                {
+                    case UserApiRequestType.Username:
+                        return Results.Ok(db.Users.FirstOrDefault(i=>i.Uuid == sessionUuid)?.Username);
+                    case UserApiRequestType.Email:
+                        return Results.Ok(db.Users.FirstOrDefault(i=>i.Uuid == sessionUuid)?.Email);
+                    case UserApiRequestType.Description:
+                        return Results.Ok(db.Users.FirstOrDefault(i=>i.Uuid==sessionUuid)?.Description);
+                    case UserApiRequestType.Joined:
+                        return Results.Ok(db.Users.FirstOrDefault(i=>i.Uuid==sessionUuid)?.Joined);
+                    case UserApiRequestType.UserRole:
+                        return Results.Ok(db.Users.FirstOrDefault(i=>i.Uuid==sessionUuid)?.Role);
+                    case UserApiRequestType.Posts:
+                        return Results.Ok(db.Posts.Where(i=>i.ByUuid == sessionUuid).ToList()); 
+                    case UserApiRequestType.Profile:
+                        return Results.Ok(db.Users.FirstOrDefault(i=>i.Uuid==sessionUuid)?.Profile);
+                }
+                
+
+                return Results.BadRequest(); 
+            });
+
+            userApi.MapPost("changeAvatar", (HttpContext context, [FromForm] AvatarBody body) =>
+            {
+                var sessionUuid = context.Session.GetString("uuid"); 
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                using var mStream = new MemoryStream();
+                body.Avatar.CopyTo(mStream);
+                if (!db.Users.Any(i => i.Uuid == sessionUuid))
+                {
+                    return  Results.NotFound();
+                }
+
+                try
+                {
+                    db.Users.FirstOrDefault(i => i.Uuid == sessionUuid)?.Profile = mStream.ToArray();
+                    db.SaveChanges(); 
+                    return Results.Ok(); 
+                }
+                catch (Exception e)
+                {
+                    return GeneralHandler(e);
+                }
+            }).DisableAntiforgery(); 
             return app; 
         }
-
+        
         public WebApplication MapBbsPostEndpoints()
         {
             var postApi = app.MapGroup("/api/bbs/post");
+            postApi.MapGet("get", (HttpContext context, int? from, int? count, GetPostOrderType orderType, string? boardUuid) =>
+            {
+                // I'm so confused. 
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                if (string.IsNullOrWhiteSpace(boardUuid))
+                {
+                    var query = count.HasValue ? db.Posts.OrderByDescending(i => i.DateTime).Skip(from ?? 0).Take( count.Value ).ToList() : db.Posts.OrderByDescending(i=>i.DateTime).Skip(from ?? 0).ToList();
+                    
+                    return Results.Ok(query.Select(i=>(GetPostPayload)i));
+                }
+                return Results.Ok((count.HasValue
+                    ? orderType switch
+                    {
+                        GetPostOrderType.DateTime => db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.DateTime).Skip(from ?? 0)
+                            .Take(count.Value).ToList(), 
+                        GetPostOrderType.Alphabetical=>db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.Title).Skip(from ?? 0)
+                            .Take(count.Value).ToList(),
+                        _ => throw new ArgumentOutOfRangeException(nameof(orderType), orderType, null)
+                    }
+                    : orderType switch
+                    {
+                        GetPostOrderType.DateTime => db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.DateTime).Skip(from ?? 0)
+                            .ToList(), 
+                        GetPostOrderType.Alphabetical=>db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.Title).Skip(from ?? 0)
+                            .ToList(),
+                        _ => throw new ArgumentOutOfRangeException(nameof(orderType), orderType, null)
+                    }).Select(i=>(GetPostPayload)i));
+            });
+            postApi.MapPost("post", (HttpContext context, [FromForm] PostPostBody body) =>
+            {
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                using var conf = new ConfigurationSqliteDbContext();
+                var sessionUuid = context.Session.GetString("uuid");
+
+                if (!conf.Settings.AllowAnonymousPost && sessionUuid.IsNullOrWhiteSpace())
+                {
+                    return Results.BadRequest();
+                }
+                try
+                {
+                    db.Posts.Add(new()
+                    {
+                        BoardUuid = body.BoardUuid,
+                        Board = db.Boards.FirstOrDefault(i => i.Uuid == body.BoardUuid)!,
+                        DateTime = DateTime.UtcNow,
+                        Uuid = Guid.NewGuid().ToString(),
+                        Content = body.Content,
+                        Title = body.Title,
+                        ByUuid = sessionUuid, By = db.Users.FirstOrDefault(i => i.Uuid == sessionUuid),
+                        ParentUuid = body.Parent, Parent = db.Posts.FirstOrDefault(i => i.Uuid == body.Parent)
+                    });
+                    db.SaveChanges();
+                    return Results.Ok();
+                }
+                catch (Exception e)
+                {
+                    return GeneralHandler(e);
+                }
+                    
+               
+            }); 
             return app; 
         }
 

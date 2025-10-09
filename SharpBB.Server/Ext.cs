@@ -31,4 +31,12 @@ public static class Ext
             return null;
         }
     }
+
+    extension(string? input)
+    {
+        public bool IsNullOrWhiteSpace()
+        {
+            return string.IsNullOrWhiteSpace(input); 
+        }
+    }
 }

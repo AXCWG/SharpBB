@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace SharpBB.Server.DbContexts.Base.Models;
@@ -23,11 +24,12 @@ public class Post
     /// </summary>
     [MaxLength(36)]
     public string? ParentUuid { get; set; }
-    public Post? Parent { get; set; }
+    public required DateTime DateTime { get; set;  }
+    public Post? Parent { get; set; } 
     public ICollection<Post>  Children { get; set; } = new List<Post>();
     [MaxLength(36)]
     public required string BoardUuid { get; set; }
-    public required Board Board { get; set; }
+    public Board? Board { get; set; }
     [MaxLength(36)]
     public string? ByUuid { get; set; }
     public User? By { get; set; }

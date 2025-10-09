@@ -1,5 +1,7 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using SharpBB.Server;
 using SharpBB.Server.DbContexts;
@@ -10,6 +12,7 @@ using SharpBB.Server.DbContexts.Base.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<JsonOptions>(o => o.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles); 
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("All", p =>
@@ -157,7 +160,7 @@ void Initialize()
     dbContext.Database.EnsureCreated();
     dbContext.Users.Add(new User
     {
-        Uuid = Guid.NewGuid().ToString(), Joined = DateTime.Now, Username = "Admin", Role = User.UserRole.Admin,
+        Uuid = Guid.NewGuid().ToString(), Joined = DateTime.UtcNow, Username = "Admin", Role = User.UserRole.Admin,
         Password = adminPassword.Sha256HexHashString()
     });
     dbContext.SaveChanges();
