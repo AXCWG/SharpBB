@@ -4,12 +4,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace SharpBB.Server.DbContexts.Base.Models
 {
-    [PrimaryKey(nameof(Uuid))]
+    [PrimaryKey(nameof(Id))]
+    
     public class BoardGroup
     {
-        [MaxLength(36)]
-        public required string Uuid { get; set; }
-        public int Order { get; set;  }
+    
+        
+        public int Id { get; set;  }
         [MaxLength(255)]
         public required string Title { get; set;  }
         public string? Description { get; set;  }

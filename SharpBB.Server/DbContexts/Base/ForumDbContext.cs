@@ -27,6 +27,6 @@ public abstract class ForumDbContext : DbContext
         modelBuilder.Entity<UserBlock>().HasOne(e => e.To).WithMany(e => e.BlockIsTo).HasForeignKey(e=>e.ToUuid); 
         modelBuilder.Entity<Post>().HasOne(e=>e.Parent).WithMany(e=>e.Children).HasForeignKey(e=>e.ParentUuid);
         modelBuilder.Entity<Post>().HasOne(e=>e.TopParent).WithMany(e=>e.AllChildren).HasForeignKey(e=>e.TopParentUuid);
-        modelBuilder.Entity<BoardGroup>().Property(i => i.Order).ValueGeneratedOnAdd(); 
+        modelBuilder.Entity<BoardGroup>().Property(i => i.Id).ValueGeneratedOnAdd(); 
     }
 }

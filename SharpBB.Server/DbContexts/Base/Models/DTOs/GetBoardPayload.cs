@@ -19,7 +19,8 @@ public class GetBoardPayload
                 Content = i.Content,
                 DateTime = i.DateTime,
                 Title = i.Title,
-                ChildrenUuid = [],
+                ChildrenUuids = [],
+                ParentUuid = i.ParentUuid
             }).FirstOrDefault() ?? null
         }; 
     }

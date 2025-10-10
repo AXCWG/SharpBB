@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SharpBB.Server.DbContexts.Base.Models;
 
 [PrimaryKey(nameof(Uuid))]
-[Index(nameof(OwnerUuid), nameof(BelongGroupUuid))]
+[Index(nameof(OwnerUuid), nameof(BelongGroupId))]
 public class Board
 {
     [MaxLength(36)]
@@ -58,7 +58,7 @@ public class Board
     public ICollection<BoardUserPostBanned> BoardUserPostBanned { get; set; } = new List<BoardUserPostBanned>();
     public ICollection<UserPoint> Points { get; set; } = new List<UserPoint>();
     public ICollection<Post> Posts { get; set; } = new List<Post>();
-    public required string BelongGroupUuid { get; set;  }
+    public required int BelongGroupId{ get; set;  }
     public BoardGroup? BelongGroup { get; set;  }
 
 }
