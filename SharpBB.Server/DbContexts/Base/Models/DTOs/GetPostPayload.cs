@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace SharpBB.Server.DbContexts.Base.Models.DTOs;
 
 public class GetPostPayload
@@ -6,21 +8,25 @@ public class GetPostPayload
     public string? Title { get; set; }
     public string? Content { get; set; }
     public DateTime? DateTime { get; set;  }
-    public List<GetPostPayload>? Children { get; set; }
-    public string? BoardUuid { get; set; }
+    public required string[] ChildrenUuid { get; set; }
+    
 
-    public static implicit operator GetPostPayload(Post post)
+    
+    public static implicit operator GetPostPayload(Post? post)
     {
+        if (post is null)
+        {
+            return null!; 
+        }
         var payload = new GetPostPayload()
         {
             Uuid = post.Uuid,
             Title = post.Title,
             Content = post.Content,
             DateTime = post.DateTime,
-            BoardUuid = post.BoardUuid,
-            Children = post.Children.Select(i=>(GetPostPayload)i).ToList()
+            ChildrenUuid = post.AllChildren.OrderByDescending(i=>i.DateTime).Select(i=>i.Uuid).ToArray()
         }; 
         return payload;
     }
-    
 }
+

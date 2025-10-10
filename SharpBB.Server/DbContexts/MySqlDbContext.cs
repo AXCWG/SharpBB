@@ -8,6 +8,7 @@ public class MySqlDbContext : ForumDbContext
 {
     public override DbSet<Post> Posts { get; set; }
     public override DbSet<Board> Boards { get; set; }
+    public override DbSet<BoardGroup> BoardGroups { get; set; }
     public override DbSet<User> Users { get; set; }
     public override DbSet<Announce> Announces { get; set; }
     public override DbSet<Message> Messages { get; set; }

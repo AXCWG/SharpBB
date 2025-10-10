@@ -7,7 +7,9 @@ using SharpBB.Server.DbContexts.Base;
 using SharpBB.Server.DbContexts.Base.Models;
 using SharpBB.Server.DbContexts.Base.Models.DTOs;
 using System;
+using System.Linq.Expressions;
 using System.Net.Mime;
+using Microsoft.EntityFrameworkCore.Query;
 using WebPWrapper.Encoder;
 
 namespace SharpBB.Server;
@@ -52,10 +54,20 @@ public static class ForumEndpoint
     {
         public required string Title { get; set;  }
         public required string Content { get; set;  }
-        public required string BoardUuid { get; set; }
-        public string? Parent { get; set;  }
     }
 
+    private class CreateBoardBody
+    {
+        public required string Title { get; set; }
+        public required string Description { get; set;  }
+        // TODO Needs implement. 
+    }
+
+    private class CreateBoardGroupBody
+    {
+        public required string Title { get; set;  }
+        public required string Description { get; set; }
+    }
 
 
     public static IResult GeneralHandler(Exception e)
@@ -67,7 +79,7 @@ public static class ForumEndpoint
     {
         public WebApplication MapBbsEndpoints()
         {
-            app.MapBbsUserEndpoints().MapBbsPostEndpoints().MapBbsStatusEndpoints().MapBbsImageEndpoints();
+            app.MapBbsUserEndpoints().MapBbsPostEndpoints().MapBbsStatusEndpoints().MapBbsImageEndpoints().MapBbsBoardEndpoints();
             return app; 
         }
 
@@ -239,36 +251,52 @@ public static class ForumEndpoint
         
         public WebApplication MapBbsPostEndpoints()
         {
+            // TODO rethink endpoints. 
+            // ReSharper disable once InvalidXmlDocComment
+            /**
+             * Directory-like structure get?
+             *
+             */
+            // TODO need test. 
             var postApi = app.MapGroup("/api/bbs/post");
-            postApi.MapGet("get", (HttpContext context, int? from, int? count, GetPostOrderType orderType, string? boardUuid) =>
+            postApi.MapGet("get/{*parameters}", (HttpContext context, string parameters) =>
             {
-                // I'm so confused. 
                 using var db = INTERN_CONF_SINGLETONS.MainContext;
-                if (string.IsNullOrWhiteSpace(boardUuid))
+                var ses = parameters.Split("/");
+                
+                for (var index = 0; index < ses.Length; index++)
                 {
-                    var query = count.HasValue ? db.Posts.OrderByDescending(i => i.DateTime).Skip(from ?? 0).Take( count.Value ).ToList() : db.Posts.OrderByDescending(i=>i.DateTime).Skip(from ?? 0).ToList();
-                    
-                    return Results.Ok(query.Select(i=>(GetPostPayload)i));
-                }
-                return Results.Ok((count.HasValue
-                    ? orderType switch
+                    var indexInner = index;
+                    if (!db.Posts.Include(i => i.Children).Any(i => i.Uuid == ses[indexInner] && i.ParentUuid ==
+                            (indexInner == 0 ? null : ses[indexInner - 1])))
                     {
-                        GetPostOrderType.DateTime => db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.DateTime).Skip(from ?? 0)
-                            .Take(count.Value).ToList(), 
-                        GetPostOrderType.Alphabetical=>db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.Title).Skip(from ?? 0)
-                            .Take(count.Value).ToList(),
-                        _ => throw new ArgumentOutOfRangeException(nameof(orderType), orderType, null)
+                        return Results.NotFound(); 
                     }
-                    : orderType switch
-                    {
-                        GetPostOrderType.DateTime => db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.DateTime).Skip(from ?? 0)
-                            .ToList(), 
-                        GetPostOrderType.Alphabetical=>db.Posts.Where(i => i.BoardUuid == boardUuid).OrderByDescending(i => i.Title).Skip(from ?? 0)
-                            .ToList(),
-                        _ => throw new ArgumentOutOfRangeException(nameof(orderType), orderType, null)
-                    }).Select(i=>(GetPostPayload)i));
+                }
+                return Results.Ok(db.Posts.Include(i => i.Children.OrderByDescending(inner => inner.DateTime)).Select(i => (GetPostPayload)i).ToList()); 
+
+                // var root = db.Posts.Include(i =>
+                //         i.Children.OrderByDescending(post => post.DateTime).Skip(from ?? 0).Take(count ?? 100))
+                //     .First(i => i.Uuid == postUuid);
+                // var res = new List<Post> { root };
+                //
+                // Iter(root, res);
+                //
+                // return Results.Ok(res.Select(i => (GetPostPayload)i).OrderBy(i => i.DateTime));
+                //
+                //
+                // void Iter(Post rootLevel, List<Post> res)
+                // {
+                //     foreach (var postInner in rootLevel.Children)
+                //     {
+                //         res.Add(postInner);
+                //         Iter(postInner, res);
+                //     }
+                // }
+                return Results.Ok(); 
+
             });
-            postApi.MapPost("post", (HttpContext context, [FromForm] PostPostBody body) =>
+            postApi.MapPost("post/{*parameters}", (HttpContext context, string parameters, [FromBody] PostPostBody body) =>
             {
                 using var db = INTERN_CONF_SINGLETONS.MainContext;
                 using var conf = new ConfigurationSqliteDbContext();
@@ -278,33 +306,106 @@ public static class ForumEndpoint
                 {
                     return Results.BadRequest();
                 }
-                try
+
+                var ses = parameters.Split('/');
+
+
+                for (var index = 0; index < ses.Length; index++)
                 {
-                    db.Posts.Add(new()
+                    var indexInner = index;
+                    if (!db.Posts.Include(i => i.Children).Any(i => i.Uuid == ses[indexInner] && i.ParentUuid ==
+                            (indexInner == 0 ? null : ses[indexInner - 1])))
                     {
-                        BoardUuid = body.BoardUuid,
-                        Board = db.Boards.FirstOrDefault(i => i.Uuid == body.BoardUuid)!,
-                        DateTime = DateTime.UtcNow,
-                        Uuid = Guid.NewGuid().ToString(),
-                        Content = body.Content,
-                        Title = body.Title,
-                        ByUuid = sessionUuid, By = db.Users.FirstOrDefault(i => i.Uuid == sessionUuid),
-                        ParentUuid = body.Parent, Parent = db.Posts.FirstOrDefault(i => i.Uuid == body.Parent)
-                    });
-                    db.SaveChanges();
-                    return Results.Ok();
+                        return Results.NotFound(); 
+                    }
                 }
-                catch (Exception e)
+
+                db.Posts.Add(new()
                 {
-                    return GeneralHandler(e);
-                }
-                    
-               
+                    Uuid = Guid.NewGuid().ToString(),
+                    Content = body.Content,
+                    DateTime = DateTime.UtcNow,
+                    BoardUuid = db.Posts.First(i => i.Uuid == ses[0]).BoardUuid,
+                    ByUuid = sessionUuid, ParentUuid = ses.Last(), TopParentUuid = ses.First()
+                }); 
+                
+                
+
+                return Results.Ok(); 
+
+
             }); 
             return app; 
         }
-        public WebApplication BbsBoardEndpoints()
+        public WebApplication MapBbsBoardEndpoints()
         {
+            var boardApis = app.MapGroup("/api/bbs/board");
+            boardApis.MapGet("get", (HttpContext context, string? boardGroupUuid) =>
+            {
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                IOrderedQueryable<Board> res;
+                if (string.IsNullOrWhiteSpace(boardGroupUuid))
+                {
+                    res = db.Boards.Include(e => e.Posts.OrderByDescending(i=>i.Parent).Take(1)).OrderByDescending(i=>i.Title);
+                    Console.WriteLine(res.ToQueryString());
+                    return Results.Ok(res.Select(i=>(GetBoardPayload)i).ToList());
+                }
+
+                res = db.Boards.Where(i => i.BelongGroupUuid == boardGroupUuid).Include(e => e.Posts.OrderByDescending(i=>i.DateTime).Take(1)).OrderByDescending(o=>o.Title); 
+                return Results.Ok(res.Select(i=>(GetBoardPayload)i).ToList());
+
+            });
+            boardApis.MapGet("create", (HttpContext context, [FromBody] CreateBoardBody body) =>
+            {
+                var sessionUuid = context.Session.GetString("uuid");
+                using var conf = new ConfigurationSqliteDbContext(); 
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                if (!conf.Settings.AllowUserCreatingBoards &&
+                    db.Users.First(i=>i.Uuid == sessionUuid).Role != User.UserRole.Admin)
+                {
+                    return Results.BadRequest();
+                }
+
+                db.Boards.Add(new()
+                {
+                    BelongGroupUuid = 
+                }); 
+            }); 
+            return app; 
+        }
+
+        public WebApplication MapBbsBoardGroupEndpoints()
+        {
+            var boardGroupApis = app.MapGroup("/api/bbs/boardgroup");
+            boardGroupApis.MapPost("create", (HttpContext context, [FromBody] CreateBoardGroupBody body) =>
+            {
+                using var db =  INTERN_CONF_SINGLETONS.MainContext;
+                var sessionUuid = context.Session.GetString("uuid");
+                if (db.Users.First(i => i.Uuid == sessionUuid).Username != "Admin")
+                {
+                    return Results.Forbid(); 
+                }
+
+                try
+                {
+                    db.BoardGroups.Add(new BoardGroup
+                    {
+                        Title = body.Title, Description = body.Description, Uuid = Guid.NewGuid().ToString()
+                    });
+                    db.SaveChanges();
+                    return Results.Ok(); 
+                }
+                catch (Exception e)
+                {
+                    return GeneralHandler(e); 
+                }
+                
+            });
+            boardGroupApis.MapGet("get", (HttpContext context) =>
+            {
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                var results = db.BoardGroups.Include(i=>i.Boards.OrderBy(i=>i.Title)).OrderByDescending()
+            });
             return app; 
         }
         public WebApplication MapBbsImageEndpoints()

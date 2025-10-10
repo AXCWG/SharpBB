@@ -7,6 +7,7 @@ public abstract class ForumDbContext : DbContext
 {
     public abstract DbSet<Post> Posts { get; set; }
     public abstract DbSet<Board> Boards { get; set; }
+    public abstract DbSet<BoardGroup> BoardGroups { get; set; }
     public abstract DbSet<User> Users { get; set; }
     public abstract DbSet<Announce> Announces { get; set; }
     public abstract DbSet<Message> Messages { get; set; }
@@ -24,5 +25,8 @@ public abstract class ForumDbContext : DbContext
         modelBuilder.Entity<Message>().HasOne(e => e.To).WithMany(e => e.Tos).HasForeignKey(e=>e.ToUuid); 
         modelBuilder.Entity<UserBlock>().HasOne(e => e.By).WithMany(e => e.BlockIsBy).HasForeignKey(e=>e.ByUuid); 
         modelBuilder.Entity<UserBlock>().HasOne(e => e.To).WithMany(e => e.BlockIsTo).HasForeignKey(e=>e.ToUuid); 
+        modelBuilder.Entity<Post>().HasOne(e=>e.Parent).WithMany(e=>e.Children).HasForeignKey(e=>e.ParentUuid);
+        modelBuilder.Entity<Post>().HasOne(e=>e.TopParent).WithMany(e=>e.AllChildren).HasForeignKey(e=>e.TopParentUuid);
+        modelBuilder.Entity<BoardGroup>().Property(i => i.Order).ValueGeneratedOnAdd(); 
     }
 }

@@ -34,6 +34,7 @@ public class User
     public ICollection<UserBlock>  BlockIsBy { get; set; } = new List<UserBlock>();
     public ICollection<UserBlock>  BlockIsTo { get; set; } = new List<UserBlock>();
     public ICollection<UserPoint>  Points { get; set; } = new List<UserPoint>();
+    public ICollection<Board>  Boards { get; set; } = new List<Board>();
     public ICollection<Post> Posts { get; set; } = new List<Post>();
     public ICollection<Message> Froms { get; set; } = new List<Message>();
     public ICollection<Message> Tos { get; set; } = new List<Message>();

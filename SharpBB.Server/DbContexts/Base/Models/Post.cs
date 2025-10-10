@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SharpBB.Server.DbContexts.Base.Models;
 
 [PrimaryKey(nameof(Uuid))]
-[Index(nameof(ParentUuid), nameof(BoardUuid), nameof(ByUuid))]
+[Index(nameof(ParentUuid), nameof(BoardUuid), nameof(ByUuid), nameof(TopParentUuid))]
 public class Post
 {
     [MaxLength(36)]
@@ -24,9 +24,15 @@ public class Post
     /// </summary>
     [MaxLength(36)]
     public string? ParentUuid { get; set; }
-    public required DateTime DateTime { get; set;  }
     public Post? Parent { get; set; } 
     public ICollection<Post>  Children { get; set; } = new List<Post>();
+    
+    [MaxLength(36)]
+    public string? TopParentUuid { get; set; }
+    public Post? TopParent { get; set; }
+    public ICollection<Post> AllChildren { get; set; } = new List<Post>(); 
+    public required DateTime DateTime { get; set;  }
+
     [MaxLength(36)]
     public required string BoardUuid { get; set; }
     public Board? Board { get; set; }
