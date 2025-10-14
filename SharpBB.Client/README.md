@@ -5,5 +5,4 @@ This software encourages user to use custom clients, mainly because my design sk
 
 Maybe changed when there's a proper somebody that actually knows how to design webpages and not cramming pre-styled components. 
 
-
-    lul
+Imagine not using a fossil-level langauge to run your forums??

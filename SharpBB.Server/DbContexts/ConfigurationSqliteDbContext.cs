@@ -159,6 +159,11 @@ public class SettingsDbSet(DbSet<Setting> settings)
         set => SettingsInternal.AddIfNotExists("EnableRegistration", value.ToStringStandard());
     }
 
+    public bool EnableLoginWithEmail
+    {
+        get => SettingsInternal.FirstOrDefault(i=>i.Key == "EnableLoginWithEmail")?.Value?.ToBoolean() ?? false;
+        set => SettingsInternal.AddIfNotExists("EnableLoginWithEmail", value.ToStringStandard());
+    }
     public bool EnforceEmail
     {
         get => SettingsInternal.FirstOrDefault(i => i.Key == "EnforceEmail")?.Value?.ToBoolean() ?? false;

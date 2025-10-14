@@ -1,4 +1,4 @@
-const BbsUrl:string = "";
+const BbsUrl:string = "http://localhost:5071"; // TODO For testing.
 
 enum Language{
 	auto,

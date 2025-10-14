@@ -7,6 +7,7 @@ using SharpBB.Server;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
 using SharpBB.Server.DbContexts.Base.Models;
+using SharpBB.Server.Endpoints;
 using WebPWrapper;
 
 
