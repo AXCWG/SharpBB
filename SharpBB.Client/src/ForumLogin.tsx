@@ -1,10 +1,10 @@
 import {createSignal, Show} from "solid-js";
-import {Lang, ServerInformation} from "./Singleton";
+import {Lang, ServerInformation, UserInformation} from "./Singleton";
 import {BiRegularLeftArrowAlt} from "solid-icons/bi";
 import {BbsUrl} from "./Configuration";
 
 const ForumLogin = ()=>{
-	document.title = ServerInformation?.bbsName ?? "null"
+	document.title = ServerInformation?.forumName ?? "null"
 	enum PageStatus {
 		FIRST_LOAD, LOGGING, ERROR, SUCCESS
 	}
@@ -14,7 +14,7 @@ const ForumLogin = ()=>{
 	}>({
 		username: "", password: ""
 	});
-	const [pageStatus, setPageStatus] = createSignal(PageStatus.FIRST_LOAD);
+	const [pageStatus, setPageStatus] = createSignal<[PageStatus, string]>([PageStatus.FIRST_LOAD, ""]);
 	return <>
 		<div class={"hero  bg-base-200 min-h-screen"}>
 			<div class={"hero-content sm:min-w-auto min-w-full"}>
@@ -24,9 +24,9 @@ const ForumLogin = ()=>{
 						<div class={"card-body"}>
 							<fieldset class={"fieldset"}>
 
-								<Show when={pageStatus() === PageStatus.SUCCESS}
+								<Show when={pageStatus()[0] === PageStatus.SUCCESS}
 									  fallback={
-									<Show when={pageStatus() === PageStatus.ERROR}>
+									<Show when={pageStatus()[0] === PageStatus.ERROR}>
 										  <div role="alert" class="alert alert-error">
 											  <svg xmlns="http://www.w3.org/2000/svg"
 												   class="h-6 w-6 shrink-0 stroke-current" fill="none"
@@ -34,7 +34,7 @@ const ForumLogin = ()=>{
 												  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
 														d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
 											  </svg>
-											  <span>{Lang?.loginFailed}</span>
+											  <span>{Lang?.loginFailed}{pageStatus()[1]}</span>
 										  </div>
 									  </Show>
 								}>
@@ -55,12 +55,12 @@ const ForumLogin = ()=>{
 									<BiRegularLeftArrowAlt size={"2rem"}/>
 
 								</a>
-								<label class={"label"}>{Lang?.username}</label>
+								<label class={"label"}>{ServerInformation?.enableLoginWithEmail ? Lang?.usernameOrEmail : Lang?.username}</label>
 								<input class={"input min-w-full"} onChange={(e) => {
 									setForm({
 										...form(), username: e.target.value
 									})
-								}} value={form().username} placeholder={Lang?.username}/>
+								}} value={form().username} placeholder={ServerInformation?.enableLoginWithEmail ? Lang?.usernameOrEmail :  Lang?.username }/>
 								<label class={"label"}>{Lang?.password}</label>
 								<input onKeyDown={(e)=>{
 									if(e.key === "Enter"){
@@ -74,10 +74,10 @@ const ForumLogin = ()=>{
 									})
 								}}  value={form().password} class={"input min-w-full"} placeholder={Lang?.password}
 									   type="password"/>
-								<button id={"login-button"} class={"btn btn-primary mt-3"} disabled={pageStatus() === PageStatus.LOGGING}
+								<button id={"login-button"} class={"btn btn-primary mt-3"} disabled={pageStatus()[0] === PageStatus.LOGGING}
 										onClick={async () => {
-											setPageStatus(PageStatus.LOGGING);
-											let response = await fetch(BbsUrl + "/api/bbs/login", {
+											setPageStatus([PageStatus.LOGGING, pageStatus()[1]]);
+											let response = await fetch(BbsUrl + "/api/bbs/user/login", {
 												method: "POST",
 												body: JSON.stringify({
 													username: form().username,
@@ -89,19 +89,19 @@ const ForumLogin = ()=>{
 												credentials: "include"
 											})
 											if (response.ok) {
-												setPageStatus(PageStatus.SUCCESS)
-												response.json().then(data => {
-													// TODO post login
-													setTimeout(()=>{
-														window.location.replace("/")
-													}, 1000)
-												})
+												setPageStatus([PageStatus.SUCCESS, pageStatus()[1]])
+												setTimeout(() => {
+													window.location.replace("/")
+												}, 1000)
 
-											} else {
-												setPageStatus(PageStatus.ERROR)
+
+											} else if (response.status === 409){
+												alert("Having two accounts with same email. ")
+											}else{
+												setPageStatus([PageStatus.ERROR, response.statusText])
 											}
 
-										}}>{pageStatus() === PageStatus.LOGGING ?
+										}}>{pageStatus()[0] === PageStatus.LOGGING ?
 									<span class="loading loading-spinner loading-md"></span>
 									: Lang?.login}</button>
 							</fieldset>

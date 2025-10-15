@@ -6,7 +6,7 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --outDir ../SharpBB.Server/wwwroot --emptyOutDir",
     "serve": "vite preview"
   },
   "license": "MIT",
@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@solidjs/router": "^0.15.3",
+    "linq": "^4.0.3",
     "solid-icons": "^1.1.0",
     "solid-js": "^1.9.9"
   }
