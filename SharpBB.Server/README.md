@@ -8,10 +8,17 @@ About WebP:
     to be  **THE** hiearchy. 
  
     
-    ![Something like this. ](.github/F1.png)
+![Something like this. ](.github/F1.png)
 
 
-    Something like this. 
+Something like this. 
 
-    `"webp"` folder needs to be at the same place with the executable. <br/><br/> I know, design flaws. 
+`"webp"` folder needs to be at the same place with the executable. 
+
+I know, design flaws. 
+
+### Building
+Before building, please ensure to run `npm run build` on the client project located in `../SharpBB.Client`.
+
+I will suggest to provide a default build/publish
 

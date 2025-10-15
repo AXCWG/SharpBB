@@ -58,13 +58,6 @@ public class SettingsDbSet(DbSet<Setting> settings)
         get => SettingsInternal.FirstOrDefault(i => i.Key == "MySqlConnectionString")?.Value;
         set => SettingsInternal.AddIfNotExists("MySqlConnectionString", value);
     }
-
-    public string? PathToBinaryDb
-    {
-        get => SettingsInternal.FirstOrDefault(i=>i.Key == "PathToBinaryDb")?.Value;
-        set => SettingsInternal.AddIfNotExists("PathToBinaryDb", value);
-    }
-
     public DbType? DbType
     {
         get =>
@@ -92,6 +85,24 @@ public class SettingsDbSet(DbSet<Setting> settings)
             }
 
             SettingsInternal.AddIfNotExists("DefaultAvatar", Convert.ToBase64String(value));
+        }
+    }
+
+    public byte[]? ForumIcon
+    {
+        get
+        {
+            var icon = SettingsInternal.FirstOrDefault(i => i.Key == "ForumIcon")?.Value; 
+            return icon != null ? Convert.FromBase64String(icon) : null;
+        }
+        set
+        {
+            if (value is null)
+            {
+                SettingsInternal.AddIfNotExists("ForumIcon", null);
+                return; 
+            }
+            SettingsInternal.AddIfNotExists("ForumIcon", Convert.ToBase64String(value));
         }
     }
 

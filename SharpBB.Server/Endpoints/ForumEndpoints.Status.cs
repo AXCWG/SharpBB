@@ -13,11 +13,21 @@ public static partial class ForumEndpoints
     {
         public WebApplication MapBbsStatusEndpoints()
         {
+            app.MapGet("/api/bbs/conf/ico", () =>
+            {
+                using var conf = new ConfigurationSqliteDbContext();
+                if (conf.Settings.ForumIcon is null)
+                {
+                    return Results.NotFound(); 
+                }
+                return Results.File(conf.Settings.ForumIcon, "image/webp", fileDownloadName: "ico.webp");
+            }); 
             app.MapGet("/api/bbs/conf", () =>
             {
                 using var conf = new ConfigurationSqliteDbContext();
                 return Results.Ok(new
                 {
+                    conf.Settings.ForumName, 
                     conf.Settings.AdminContact,
                     conf.Settings.AllowAnonymousUser,
                     conf.Settings.AllowAnonymousRead,

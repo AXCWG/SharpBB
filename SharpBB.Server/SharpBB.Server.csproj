@@ -13,6 +13,7 @@
     <ItemGroup>
         <PackageReference Include="ByteSize" Version="2.1.2" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
+        <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="9.0.10" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.9" />
         <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.4" />

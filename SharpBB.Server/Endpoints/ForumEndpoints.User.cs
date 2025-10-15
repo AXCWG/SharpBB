@@ -16,7 +16,8 @@ public static partial class ForumEndpoints
         Description = 3,
         Joined = 4,
         UserRole = 5,
-        Posts = 6
+        Posts = 6, 
+        Uuid = 7
     }
     public class RegisterBody
     {
@@ -111,19 +112,35 @@ public static partial class ForumEndpoints
                 {
                     return Results.BadRequest();
                 }
-
                 try
                 {
                     using var db = INTERN_CONF_SINGLETONS.MainContext;
+                    using var conf = new ConfigurationSqliteDbContext();
+                    
+                    if (body.Username.Contains('@') && conf.Settings.EnableLoginWithEmail)
+                    {
+                        var users = db.Users.Where(i =>
+                            i.Email == body.Username && i.Password == body.Password.Sha256HexHashString()).ToList();
+                        switch (users.Count)
+                        {
+                            case 0:
+                                return Results.NotFound("Username, email or password is incorrect. ");
+                            case 1:
+                                context.Session.SetString("uuid", users[0].Uuid); 
+                                return Results.Ok(users[0].Uuid);
+                            default:
+                                return Results.Conflict(users.Select(i => i.Username)); 
+                        }
+                    }
                     var user = db.Users.FirstOrDefault(i =>
                         i.Username == body.Username && i.Password == body.Password.Sha256HexHashString());
                     if (user == null)
                     {
                         return Results.NotFound("Username or password is incorrect");
                     }
-
                     context.Session.SetString("uuid", user.Uuid);
-                    return Results.Ok();
+                    return Results.Ok(user.Uuid);
+
                 }
                 catch (Exception e)
                 {
@@ -160,6 +177,8 @@ public static partial class ForumEndpoints
                         return Results.Ok(db.Posts.Where(i => i.ByUuid == sessionUuid).ToList());
                     case UserApiRequestType.Profile:
                         return Results.Ok(db.Users.FirstOrDefault(i => i.Uuid == sessionUuid)?.Profile);
+                    case UserApiRequestType.Uuid:
+                        return Results.Ok(sessionUuid); 
                 }
 
 

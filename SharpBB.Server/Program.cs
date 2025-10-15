@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using SharpBB.Server;
 using SharpBB.Server.DbContexts;
 using SharpBB.Server.DbContexts.Base;
@@ -73,6 +74,7 @@ builder.Services.AddAuthorization();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddSpaStaticFiles(conf => conf.RootPath = "wwwroot");
 
 var app = builder.Build();
 app.UseRateLimiter();
@@ -83,6 +85,27 @@ if (!INTERN_CONF_SINGLETONS.Initialized)
 {
     Initialize();
 }
+
+// SPA
+app.UseWhen(c => !c.Request.Path.StartsWithSegments("/api"), b =>
+{
+    b.UseSpa(spa =>
+    {
+        spa.Options.SourcePath = "../SharpBB.Client";
+        if (app.Environment.IsDevelopment())
+        {
+            spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
+        }
+        else
+        {
+            b.UseSpaStaticFiles();
+        }
+
+    });
+}); 
+
+
+
 
 
 // Configure the HTTP request pipeline.
@@ -121,8 +144,11 @@ void Initialize()
         var s = Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("SharpBB.Server.Assets.anonymous.webp")!;
         s.CopyTo(arr);
-
         pre.Settings.DefaultAvatar = arr.ToArray();
+        using var arr2 = new MemoryStream(); 
+        using var s2 = Assembly.GetExecutingAssembly().GetManifestResourceStream("SharpBB.Server.Assets.ForumIcon.webp")!;
+        s2.CopyTo(arr2);
+        pre.Settings.ForumIcon =  arr2.ToArray();
         pre.SaveChanges();
         pre.Dispose();
         arr.Dispose();
