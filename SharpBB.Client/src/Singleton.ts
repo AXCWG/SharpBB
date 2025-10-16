@@ -8,8 +8,11 @@ switch(DefaultLanguage) {
             case "zh-CN":
                 Lang = (await import("./Languages/zh_CN")).default as unknown as ILanguage;
                 break;
+            default:
             case "en-US":
                 Lang = (await (import("./Languages/en_US"))).default as unknown as ILanguage;
+                break;
+
         }
         break;
     case Language.en_US:

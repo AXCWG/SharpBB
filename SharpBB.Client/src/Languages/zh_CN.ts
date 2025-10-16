@@ -6,7 +6,7 @@ const zh_CN: ILanguage = {
 	usernameOrEmail: "用户名或邮箱",
 	password: "密码",
 	loginSucceed: "登录成功，正在跳转……",
-	loginFailed: "登录失败 原因："
+	loginFailed: "登录失败 请检查用户名或密码。原因："
 }
 
 export default zh_CN;
