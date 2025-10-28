@@ -25,5 +25,6 @@ public class SqliteDbContext : ForumDbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
         optionsBuilder.UseSqlite($"Data Source={INTERN_CONF_SINGLETONS.SqliteDir}");
+    
 }
 

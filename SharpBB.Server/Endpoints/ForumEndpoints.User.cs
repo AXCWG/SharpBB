@@ -184,6 +184,11 @@ public static partial class ForumEndpoints
 
                 return Results.BadRequest();
             });
+            userApi.MapGet("getnamefast", (string uuid) =>
+            {
+                using var db = INTERN_CONF_SINGLETONS.MainContext;
+                return Results.Text(db.Users.FirstOrDefault(i => i.Uuid == uuid)?.Username); 
+            }); 
 
             userApi.MapPost("changeAvatar", (HttpContext context, [FromForm] IFormFile image) =>
             {

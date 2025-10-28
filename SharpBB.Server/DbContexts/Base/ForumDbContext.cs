@@ -3,22 +3,22 @@ using SharpBB.Server.DbContexts.Base.Models;
 
 namespace SharpBB.Server.DbContexts.Base;
 
-public abstract class ForumDbContext : DbContext
+public class ForumDbContext : DbContext
 {
-    public abstract DbSet<Post> Posts { get; set; }
-    public abstract DbSet<Board> Boards { get; set; }
-    public abstract DbSet<BoardGroup> BoardGroups { get; set; }
-    public abstract DbSet<User> Users { get; set; }
-    public abstract DbSet<Announce> Announces { get; set; }
-    public abstract DbSet<Message> Messages { get; set; }
-    public abstract DbSet<UserPoint> UserPoints { get; set; }
-    public abstract DbSet<UserBlock> UserBlocks { get; set; }
-    public abstract DbSet<PostUserPostAllowed>  PostUserPostAllowed { get; set; }
-    public abstract DbSet<PostUserPostBanned>  PostUserPostBanned { get; set; }
-    public abstract DbSet<PostAllowedPointRange> PostAllowedPointRanges { get; set; }
-    public abstract DbSet<BoardAllowedPointRange> BoardAllowedPointRanges { get; set; }
-    public abstract DbSet<BoardUserPostAllowed> BoardUserPostAllowed { get; set; }
-    public abstract DbSet<BoardUserPostBanned> BoardUserPostBanned { get; set; }
+    public virtual DbSet<Post> Posts { get; set; }
+    public virtual DbSet<Board> Boards { get; set; }
+    public virtual DbSet<BoardGroup> BoardGroups { get; set; }
+    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<Announce> Announces { get; set; }
+    public virtual DbSet<Message> Messages { get; set; }
+    public virtual DbSet<UserPoint> UserPoints { get; set; }
+    public virtual DbSet<UserBlock> UserBlocks { get; set; }
+    public virtual DbSet<PostUserPostAllowed>  PostUserPostAllowed { get; set; }
+    public virtual DbSet<PostUserPostBanned>  PostUserPostBanned { get; set; }
+    public virtual DbSet<PostAllowedPointRange> PostAllowedPointRanges { get; set; }
+    public virtual DbSet<BoardAllowedPointRange> BoardAllowedPointRanges { get; set; }
+    public virtual DbSet<BoardUserPostAllowed> BoardUserPostAllowed { get; set; }
+    public virtual DbSet<BoardUserPostBanned> BoardUserPostBanned { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Message>().HasOne(e => e.From).WithMany(e => e.Froms).HasForeignKey(e=>e.FromUuid); 

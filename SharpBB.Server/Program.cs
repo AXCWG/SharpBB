@@ -197,9 +197,10 @@ void Initialize()
 
 
     dbContext.Database.EnsureCreated();
+    var adminUserUuid = Guid.NewGuid().ToString();
     dbContext.Users.Add(new User
     {
-        Uuid = Guid.NewGuid().ToString(), Joined = DateTime.UtcNow, Username = "Admin", Role = User.UserRole.Admin,
+        Uuid = adminUserUuid, Joined = DateTime.UtcNow, Username = "Admin", Role = User.UserRole.Admin,
         Password = adminPassword.Sha256HexHashString()
     });
     dbContext.SaveChanges();
@@ -218,6 +219,27 @@ void Initialize()
         conf.SaveChanges(); 
     }
 
+    dbContext.BoardGroups.Add(new()
+    {
+        Description = "Default board group. ", Title = "Default Group"
+    });
+    dbContext.SaveChanges(); 
+    var defaultBoardUuid = Guid.NewGuid().ToString();
+    dbContext.Boards.Add(new()
+    {
+        BelongGroupId = 1, Title = "Default Board", Description = "Default Board", Created = DateTime.Now,
+        OwnerUuid = adminUserUuid, PermissionLevel = Board.BoardPostPermissionLevel.Everyone, Uuid = defaultBoardUuid,
+    }); 
+    dbContext.SaveChanges();
+    var defaultPostUuid = Guid.NewGuid().ToString();
+    dbContext.Posts.Add(new()
+    {
+        BoardUuid = defaultBoardUuid, Uuid = defaultPostUuid,
+        Content = "Welcome to SharpBB. This is an auto-generated board during initialization. Enjoy! ",
+        DateTime = DateTime.Now, Title = "Welcome. ", ByUuid = adminUserUuid, ParentUuid = null, TopParentUuid = null
+    }); 
+    dbContext.SaveChanges();
+    
     Console.WriteLine("Initialization finished. Please restart SharpBB Server.");
     Environment.Exit(0);
     return;

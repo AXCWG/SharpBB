@@ -40,7 +40,7 @@ public static partial class ForumEndpoints
             boardGroupApis.MapGet("get", (HttpContext context) =>
             {
                 using var db = INTERN_CONF_SINGLETONS.MainContext;
-                var results = db.BoardGroups.Include(i => i.Boards.OrderBy(i => i.Title)).OrderBy(i => i.Id).Select(i => (GetBoardGroupPayload)i).ToList();
+                var results = db.BoardGroups.Include(i => i.Boards.OrderBy(i => i.Title)).ThenInclude(i=>i.Posts).OrderBy(i => i.Id).Select(i => (GetBoardGroupPayload)i).ToList();
                 return results;
             });
             return app;

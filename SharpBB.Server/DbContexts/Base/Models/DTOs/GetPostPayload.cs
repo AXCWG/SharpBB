@@ -10,7 +10,7 @@ public class GetPostPayload
     public DateTime? DateTime { get; set;  }
     public required string[] ChildrenUuids { get; set; }
     public required string? ParentUuid { get; set; }
-
+    public required string? By { get; set; }
     
     public static implicit operator GetPostPayload(Post? post)
     {
@@ -24,7 +24,7 @@ public class GetPostPayload
             Title = post.Title,
             Content = post.Content,
             DateTime = post.DateTime,
-            ChildrenUuids = post.Children.Select(i=>i.Uuid).ToArray(), ParentUuid = post.ParentUuid
+            ChildrenUuids = post.Children.Select(i=>i.Uuid).ToArray(), ParentUuid = post.ParentUuid, By = post.ByUuid
         }; 
         return payload;
     }

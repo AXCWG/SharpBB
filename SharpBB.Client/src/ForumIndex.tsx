@@ -1,8 +1,14 @@
-import {Component, createSignal, Show} from 'solid-js';
+import {Component, createEffect, createResource, createSignal, For, Show, Suspense} from 'solid-js';
 import {Lang, ServerInformation, UserInformation} from "./Singleton";
 import {BbsUrl, Routes} from "./Configuration";
+import {  createMediaQuery } from '@solid-primitives/media';
+import BoardGroupReturnResult from "./Types/BoardGroupReturnResult";
 
-
+const Announces =()=>{
+    return <>
+        <div class={"h-50 bg-base-200 rounded-lg"}></div>
+    </>;
+}
 const ForumIndex: Component = () => {
     const NavBar = ()=>{
         return <>
@@ -17,38 +23,70 @@ const ForumIndex: Component = () => {
     const [loginForm, setLoginForm] = createSignal<{username: string, password: string}>({
         username: "", password: ""
     });
+	const [data, {mutate, refetch}] = createResource<BoardGroupReturnResult[]>(async ()=>{
+		let res=  await fetch(BbsUrl + "/api/bbs/boardgroup/get")
+		if(res.ok){
+			let json =  (await res.json()) as BoardGroupReturnResult[];
+			for (let boardGroupReturnResult of json) {
+				for (let board of boardGroupReturnResult.boards) {
+					board.latestActivity.by = await (await fetch(BbsUrl + "/api/bbs/user/getnamefast?uuid=" + board.latestActivity.by)).text()
+				}
+			}
+
+			return json
+		}else{
+			throw Error(`Unable to fetch boards ${res.status}`);
+		}
+	})
+	const isDesktop = createMediaQuery("(min-width: 640px)");
 
   return (
-    <>
-        {/*<NavBar/>*/}
-        <div class={"py-10 xl:px-90 md:px-30 sm:px-10"}>
-            <div class={"px-5 sm:grid sm:gap-4 sm:grid-cols-2 w-full "}>
-                <div class={"flex flex-col justify-center"}>
-                    <img alt={"ForumLogo"} src={BbsUrl + "/api/bbs/conf/ico"} class={"sm:w-auto sm:h-auto max-w-70"}/>
+	  <>
+		  <Show when={isDesktop()}>
+			  <>
+				  <img src={BbsUrl+"/api/bbs/conf/ico"} class={"w-100"}/>
+				  <Suspense fallback={<div><span class={"loading loading-spinner"}></span></div>}>
+					  <For each={data()}>
+						  {(item, index)=>{
+							  return <>
+								  <table class={"table table-fixed"}>
+									  <thead>
+									  <tr>
+										  <td colspan={4} class={"text-center"}>
+											  {item.title} - {item.description}
+										  </td>
+									  </tr>
 
-                </div>
-                <div class={"p-2 sm:block hidden max-w-100  bg-base-200 rounded-lg h-full"}>
-                    <Show when={!UserInformation}>
-                        <div >
-                            <div class={"flex flex-col gap-4 p-5 "}>
-                                <input
-                                    class={"input w-full"}
-                                    placeholder={ServerInformation?.enableLoginWithEmail ? Lang?.usernameOrEmail : Lang?.username}
-                                    id={"login-form-username"}/>
+									  </thead>
+									  <tbody>
+									  <For each={item.boards}>
+										  {(item, index)=>{
+											  return <>
+												  <tr>
+													  <td><span class={"text-xl"}>{item.name}</span><br/>{item.description}</td>
+													  <td>{item.topicCount} Topics</td>
+													  <td>{item.repliesCount} Replies</td>
+													  <td>Latest activity in: {item.latestActivity.title}<br/>By: {item.latestActivity.by}</td>
+												  </tr>
+											  </>
+										  }}
+									  </For>
 
-                                <input type={"password"}
-                                    class={"input w-full"} placeholder={Lang?.password} id={"login-form-username"}/>
-                                <button disabled={validation()} class={"btn btn-primary"}>{Lang?.login}</button>
+									  </tbody>
+								  </table>
+							  </>
+						  }}
+					  </For>
 
+				  </Suspense>
 
-                            </div>
-                        </div>
-                    </Show>
-                </div>
+			  </>
+		  </Show>
+		  <Show when={!isDesktop()}>
+			  <>mobile</>
+		  </Show>
+	  </>
 
-            </div>
-        </div>
-    </>
   );
 };
 
